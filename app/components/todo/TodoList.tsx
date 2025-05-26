@@ -45,7 +45,37 @@ const TodoList = ({ notes, onSelect, onDelete }: Props) => {
               <p className="text-sm text-gray-700 whitespace-pre-wrap mb-2">
                 {note.description}
               </p>
-              <p className="text-xs text-gray-500">
+
+              {/* Checklist */}
+              {note.isChecklist && Array.isArray(note.checklist_items) && note.checklist_items.length > 0 && (
+                <ul className="mb-2 text-sm text-gray-800 list-disc pl-5">
+                  {note.checklist_items.map((item) => (
+                    <li key={item.id} className="flex items-center gap-2">
+                      <input type="checkbox" checked={item.isChecked} readOnly />
+                      <span>{item.text}</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+
+              {/* Attachments */}
+              {Array.isArray(note.attachments) && note.attachments.length > 0 && (
+                <div className="mt-2 text-xs text-blue-600">
+                  {note.attachments.map((file, index) => (
+                    <a
+                      key={index}
+                      href={file.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="block truncate hover:underline"
+                    >
+                      📎 {file.file_name}
+                    </a>
+                  ))}
+                </div>
+              )}
+
+              <p className="text-xs text-gray-500 mt-2">
                 Created by: {note.user_firstname ?? 'Unknown'} <br />
                 at: {new Date(note.created_at).toLocaleString()}
               </p>

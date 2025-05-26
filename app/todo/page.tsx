@@ -19,7 +19,40 @@ export default function NotesPage() {
 
   const { getToken } = useAuth();
   const { isSignedIn } = useUser();
+  const { user } = useUser();
 
+
+  useEffect(() => {
+    async function createUserIfNeeded() {
+      if (!user) return;
+      const userData = {
+        clerkId: user.id,
+        email: user.emailAddresses[0].emailAddress,
+        firstName: user.firstName || "",
+        lastName: user.lastName || "",
+        imageUrl: user.imageUrl || "",
+      };
+
+      try {
+        const response = await axios.post(`${API_URL}/users`, userData);
+        console.log("User stored successfully:", response.data);
+      } catch (error: any) {
+        if (axios.isAxiosError(error)) {
+          if (error.response?.status === 409) {
+            console.log("User already exists, no need to create.");
+          } else {
+            console.error("Unexpected error creating user:", error);
+          }
+        } else {
+          console.error("Non-Axios error:", error);
+        }
+      }
+    }
+
+    createUserIfNeeded();
+  }, [user]);
+
+  
   const getNotes = async () => {
     const token = await getToken();
     if (!token) return;
