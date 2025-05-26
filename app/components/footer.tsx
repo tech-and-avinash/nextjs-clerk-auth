@@ -2,7 +2,7 @@ export function Footer() {
   return (
     <footer className="max-w-[75rem] bg-white w-full mx-auto pt-6 border-t border-[#EEEEF0] flex justify-between pb-24">
       <a
-        href="https://clerk.dev"
+        href=""
         target="_blank"
         className="flex gap-2 font-medium text-[0.8125rem] items-center"
       >
@@ -27,17 +27,17 @@ export function Footer() {
             fillOpacity="0.5"
           />
         </svg>
-        Clerk
+        Nomadule.com
         <span className="text-[#5E5F6E]">{new Date().getFullYear()}</span>
       </a>
       <ul className="flex gap-2 ml-auto">
         <li>
           <a
-            href="https://clerk.com/docs?utm_source=vercel-template&utm_medium=template_repos&utm_campaign=nextjs_template"
+            href=""
             target="_blank"
             className="flex items-center gap-2 font-medium text-[0.8125rem] rounded-full px-3 py-2 hover:bg-gray-100"
           >
-            Clerk Docs{" "}
+            Nomadule Docs{" "}
             <svg
               width="16"
               height="16"

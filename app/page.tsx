@@ -1,127 +1,176 @@
-import { SignInButton, SignUpButton, SignedIn, SignedOut, SignOutButton } from "@clerk/nextjs"
-import { LearnMore } from "./components/learn-more"
-import screenshotDevices from "./images/user-button@2xrl.webp"
-import signIn from "./images/sign-in@2xrl.webp"
-import verify from "./images/verify@2xrl.webp"
-import userButton2 from "./images/user-button-2@2xrl.webp"
-import signUp from "./images/sign-up@2xrl.webp"
-import logo from "./images/logo.png"
-import "./home.css"
-import Image from "next/image"
-import Link from "next/link"
-import { Footer } from "./components/footer"
+'use client';
+import React, { useState, useEffect } from 'react';
+import axios from 'axios';
+import { useAuth, useUser, RedirectToSignIn } from '@clerk/nextjs';
+import { ChecklistItem, CreateChecklistItem, Note } from './types/types';
+import TodoForm from './components/todo/TodoForm';
+import TodoList from './components/todo/TodoList';
+import ConfirmModal from './components/ConfirmModal';
+import  {Header}  from './components/Header';
 
-import { CARDS } from "./consts/cards"
-import { ClerkLogo } from "./components/clerk-logo"
-import { NextLogo } from "./components/next-logo"
+const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
 export default function Home() {
+  const [notes, setNotes] = useState<Note[]>([]);
+  const [selectedNote, setSelectedNote] = useState<Note | null>(null);
+  const [noteToDelete, setNoteToDelete] = useState<Note | null>(null);
+  const [isConfirmOpen, setIsConfirmOpen] = useState(false);
+
+  const [title, setTitle] = useState('');
+  const [description, setDescription] = useState('');
+  const [checklistItems, setChecklistItems] = useState<CreateChecklistItem[]>([]);
+  const [file, setFile] = useState<File | null>(null);
+
+  const { getToken } = useAuth();
+  const { isLoaded, isSignedIn, user } = useUser();
+
+  useEffect(() => {
+    if (!user) return;
+
+    const userData = {
+      clerkId: user.id,
+      email: user.emailAddresses[0].emailAddress,
+      firstName: user.firstName || '',
+      lastName: user.lastName || '',
+      imageUrl: user.imageUrl || '',
+    };
+
+    axios.post(`${API_URL}/users`, userData).catch((error) => {
+      if (axios.isAxiosError(error) && error.response?.status === 409) {
+        console.log('User already exists.');
+      } else {
+        console.error('Error creating user:', error);
+      }
+    });
+  }, [user]);
+
+  const getNotes = async () => {
+    const token = await getToken();
+    if (!token) return;
+
+    try {
+      const res = await axios.get(`${API_URL}/notes`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const fetchedNotes = Array.isArray(res.data?.notes) ? res.data.notes : [];
+      setNotes(fetchedNotes);
+    } catch (error: any) {
+      console.error('Error fetching notes:', error.response?.data || error.message);
+    }
+  };
+
+  useEffect(() => {
+    if (isSignedIn) getNotes();
+  }, [isSignedIn]);
+
+  const handleSubmit = async () => {
+    const token = await getToken();
+    if (!token) return;
+
+    let attachment = null;
+
+    // Upload file if selected
+    if (file) {
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const uploadRes = await axios.post(`${API_URL}/files/upload`, formData, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+
+      const { fileName, url, contentType } = uploadRes.data;
+      attachment = { fileName, url, contentType };
+    }
+
+    // ✅ Filter out empty checklist items
+    const filteredChecklistItems = checklistItems.filter(item => item.text.trim() !== '');
+
+    try {
+      const res = await axios.post(
+        `${API_URL}/notes`,
+        {
+          title,
+          description,
+          isChecklist: filteredChecklistItems.length > 0,
+          checklistItems: filteredChecklistItems,
+          reminders: [],
+          attachments: attachment ? [attachment] : [],
+        },
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+
+      setNotes((prev) => [...prev, res.data]);
+
+      // ✅ Reset all form fields
+      setTitle('');
+      setDescription('');
+      setChecklistItems([]); // ✅ No empty item after reset
+      setFile(null);
+    } catch (error: any) {
+      console.error('Error adding note:', error.response?.data || error.message);
+    }
+  };
+
+  const confirmDelete = async () => {
+    if (!noteToDelete) return;
+
+    try {
+      const token = await getToken();
+      await axios.delete(`${API_URL}/notes/${noteToDelete.id}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setNotes((prev) => prev.filter((n) => n.id !== noteToDelete.id));
+      setNoteToDelete(null);
+    } catch (error: any) {
+      console.error('Error deleting note:', error.response?.data || error.message);
+    }
+  };
+
+  const handleDelete = (note: Note) => {
+    setNoteToDelete(note);
+    setIsConfirmOpen(true);
+  };
+
+  if (!isLoaded) return null;
+  if (!isSignedIn) return <RedirectToSignIn />;
+
   return (
-    <>
-      <main className="bg-[#FAFAFA] relative">
-        <div className="w-full bg-white max-w-[75rem] mx-auto flex flex-col border-l border-r border-[#F2F2F2] row-span-3">
-          <div className="absolute top-0 bottom-0 left-1/2 -translate-x-1/2 w-px bg-[#F2F2F2]" />
-          <Image
-            alt="Device"
-            className="size-64 bg-transparent absolute left-1/2 -translate-x-[23.75rem] -top-6 h-[51.375rem] object-contain w-[39.0625rem]"
-            src={logo}
-            unoptimized
-          />
+    <div className="flex justify-center items-start min-h-screen bg-white">
+      <div className="w-1/2 py-10 px-4">
+        <Header />
 
-          <div className="px-12 py-16 border-b border-[#F2F2F4]">
-            <div className="bg-[#F4F4F5] px-4 py-3 rounded-full inline-flex gap-4">
-              <ClerkLogo />
-              <div aria-hidden className="w-px h-6 bg-[#C7C7C8]" />
-              <NextLogo />
-            </div>
-          </div>
+        <TodoForm
+          title={title}
+          description={description}
+          setTitle={setTitle}
+          setDescription={setDescription}
+          checklistItems={checklistItems}
+          setChecklistItems={setChecklistItems} 
+          file={file}
+          setFile={setFile}
+          onSubmit={handleSubmit}
+        />
 
-          <div className="p-10 border-b border-[#F2F2F2]">
-            <h1 className="text-5xl font-bold tracking-tight text-[#131316] relative">
-              Auth starts here
-            </h1>
+        <TodoList
+          notes={notes}
+          onSelect={setSelectedNote}
+          onDelete={handleDelete}
+        />
 
-            <p className="text-[#5E5F6E] pt-3 pb-6 max-w-[30rem] text-[1.0625rem] relative">
-              A simple and powerful Next.js template featuring authentication
-              and user management powered by Clerk.
-            </p>
-            <div className="relative flex gap-3">
-              <SignedIn>
-                <Link
-                  href="/dashboard"
-                  className="px-4 py-2 rounded-full bg-[#131316] text-white text-sm font-semibold"
-                >
-                  Dashboard
-                </Link>
-                <Link
-                  href="/todo"
-                  className="px-4 py-2 rounded-full bg-[#131316] text-white text-sm font-semibold"
-                >
-                  Todo
-                </Link>
-                <SignOutButton>
-                  <button className="px-4 py-2 rounded-full bg-red-600 text-white text-sm font-semibold">
-                    Sign out
-                  </button>
-                </SignOutButton>
-              </SignedIn>
-              <SignedOut>
-                <SignInButton>
-                  <button className="px-4 py-2 rounded-full bg-[#131316] text-white text-sm font-semibold">
-                    Sign in
-                  </button>
-                </SignInButton>
-                <SignUpButton>
-                  <button className="px-4 py-2 rounded-full bg-[#131316] text-white text-sm font-semibold">
-                    Sign up
-                  </button>
-                </SignUpButton>
-              </SignedOut>
-            </div>
-          </div>
-          <div className="flex gap-8 w-full h-[41.25rem] scale-[1.03]">
-            <div className="space-y-8 translate-y-12">
-              <Image
-                alt="Device"
-                src={signUp}
-                unoptimized
-                className="flex-none rounded-xl bg-white shadow-[0_5px_15px_rgba(0,0,0,0.08),0_15px_35px_-5px_rgba(25,28,33,0.2)] ring-1 ring-gray-950/5"
-              />
-            </div>
-            <div className="space-y-8 -translate-y-4">
-              <Image
-                alt="Device"
-                src={verify}
-                unoptimized
-                className="flex-none rounded-xl bg-white shadow-[0_5px_15px_rgba(0,0,0,0.08),0_15px_35px_-5px_rgba(25,28,33,0.2)] ring-1 ring-gray-950/5"
-              />
-              <Image
-                alt="Device"
-                src={userButton2}
-                unoptimized
-                className="flex-none rounded-xl bg-white shadow-[0_5px_15px_rgba(0,0,0,0.08),0_15px_35px_-5px_rgba(25,28,33,0.2)] ring-1 ring-gray-950/5"
-              />
-            </div>
-            <div className="space-y-8 -translate-y-[22.5rem]">
-              <Image
-                alt="Device"
-                src={signIn}
-                unoptimized
-                className="flex-none rounded-xl bg-white shadow-[0_5px_15px_rgba(0,0,0,0.08),0_15px_35px_-5px_rgba(25,28,33,0.2)] ring-1 ring-gray-950/5"
-              />
-              <Image
-                alt="Device"
-                src={screenshotDevices}
-                unoptimized
-                className="flex-none rounded-xl bg-white shadow-[0_5px_15px_rgba(0,0,0,0.08),0_15px_35px_-5px_rgba(25,28,33,0.2)] ring-1 ring-gray-950/5"
-              />
-            </div>
-          </div>
-        </div>
-        <div className="absolute left-0 right-0 bottom-0 h-[18.75rem] bg-gradient-to-t from-white" />
-      </main>
-      <LearnMore cards={CARDS} />
-      <Footer />
-    </>
-  )
+        <ConfirmModal
+          isOpen={isConfirmOpen}
+          onClose={() => setIsConfirmOpen(false)}
+          onConfirm={confirmDelete}
+          title="Delete Note"
+          message={`Are you sure you want to delete "${noteToDelete?.title}"?`}
+        />
+      </div>
+    </div>
+  );
 }
+

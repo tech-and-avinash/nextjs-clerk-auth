@@ -1,5 +1,6 @@
 [context.production.environment]
-CLERK_API_KEY = "your_production_key"
+NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY="pk_live_Y2xlcmsubm9tYWR1bGUuY29tJA"
+CLERK_SECRET_KEY="sk_live_StWOdu2FGg5DfRL9gdEKxUKEQW8dIiEcsiDuYQppa0"
 
 [context.deploy-preview.environment]
 NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY="pk_test_c3dlZXQtZ2F0b3ItOTYuY2xlcmsuYWNjb3VudHMuZGV2JA"

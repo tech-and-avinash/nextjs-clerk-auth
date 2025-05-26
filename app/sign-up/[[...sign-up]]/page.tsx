@@ -1,9 +1,11 @@
-import { SignUp } from "@clerk/nextjs";
+'use client';
 
-export default function Page() {
+import { SignUp } from '@clerk/nextjs';
+
+export default function CustomSignUpPage() {
   return (
-    <div className="flex justify-center py-24">
-      <SignUp />
+    <div className="flex justify-center items-center min-h-screen">
+      <SignUp path="/sign-up" routing="path" signInUrl="/sign-in" />
     </div>
   );
 }
