@@ -6,7 +6,7 @@ import { ChecklistItem, CreateChecklistItem, Note } from './types/types';
 import TodoForm from './components/todo/TodoForm';
 import TodoList from './components/todo/TodoList';
 import ConfirmModal from './components/ConfirmModal';
-import { Header } from './components/Header';
+import  {Header}  from './components/Header';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
@@ -173,3 +173,4 @@ export default function Home() {
     </div>
   );
 }
+
